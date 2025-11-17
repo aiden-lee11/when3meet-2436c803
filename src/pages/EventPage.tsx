@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Link2, ArrowLeft } from "lucide-react";
 import AvailabilityGrid from "@/components/AvailabilityGrid";
+import HeatmapGrid from "@/components/HeatmapGrid";
 import SuggestedTimes from "@/components/SuggestedTimes";
 import { Database } from "@/integrations/supabase/types";
 
@@ -233,17 +234,26 @@ const EventPage = () => {
               </Button>
             </div>
 
-            <AvailabilityGrid
-              event={event}
-              participantId={selectedParticipant}
-              availability={availability}
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <AvailabilityGrid
+                event={event}
+                participantId={selectedParticipant}
+                availability={availability}
+              />
+              <HeatmapGrid
+                event={event}
+                participants={participants}
+                availability={availability}
+              />
+            </div>
 
-            <SuggestedTimes
-              event={event}
-              participants={participants}
-              availability={availability}
-            />
+            <div className="mt-6">
+              <SuggestedTimes
+                event={event}
+                participants={participants}
+                availability={availability}
+              />
+            </div>
           </>
         )}
       </div>
