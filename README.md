@@ -62,7 +62,35 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/597b121d-3df9-4eaf-8b2e-4334969835c9) and click on Share -> Publish.
+### Deploy to Vercel (recommended)
+
+Front-end is a static Vite app; deploy is trivial.
+
+1) Create a new Vercel project, import this repo.
+2) Build settings:
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Install Command: `npm install` (default)
+3) Environment Variables (Project → Settings → Environment Variables):
+- `VITE_SUPABASE_URL` = your Supabase project URL
+- `VITE_SUPABASE_PUBLISHABLE_KEY` = your Supabase anon/public key
+4) Save and Deploy.
+
+Client-side routing is handled by `vercel.json` rewrites so deep links work.
+
+CLI alternative:
+
+```bash
+npm install -g vercel
+vercel login
+vercel link   # link local folder to a Vercel project
+vercel env add VITE_SUPABASE_URL
+vercel env add VITE_SUPABASE_PUBLISHABLE_KEY
+vercel        # preview deploy
+vercel --prod # production deploy
+```
+
+Ensure your Supabase CORS settings allow your Vercel domain if you have restrictions.
 
 ## Can I connect a custom domain to my Lovable project?
 
