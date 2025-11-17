@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Users, Star, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
 type Participant = Database["public"]["Tables"]["participants"]["Row"];
@@ -261,6 +262,74 @@ const SuggestedTimes = ({ event, participants, availability }: SuggestedTimesPro
 
   const suggestions = calculateSuggestions();
 
+  // Helpers: calendar integration (no auth required)
+  const toLocalDate = (dateStr: string, timeStr: string) => new Date(`${dateStr}T${timeStr}`);
+
+  const addMinutes = (d: Date, mins: number) => new Date(d.getTime() + mins * 60000);
+
+  const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+  const formatICSDate = (d: Date) => {
+    // Use UTC Zulu time for portability
+    const yyyy = d.getUTCFullYear();
+    const mm = pad(d.getUTCMonth() + 1);
+    const dd = pad(d.getUTCDate());
+    const hh = pad(d.getUTCHours());
+    const mi = pad(d.getUTCMinutes());
+    const ss = pad(d.getUTCSeconds());
+    return `${yyyy}${mm}${dd}T${hh}${mi}${ss}Z`;
+  };
+
+  const buildGoogleCalendarLink = (title: string, details: string | null, start: Date, end: Date) => {
+    const fmt = (d: Date) => formatICSDate(d); // Google accepts Zulu format
+    const dates = `${fmt(start)}/${fmt(end)}`;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    const params = new URLSearchParams({
+      action: "TEMPLATE",
+      text: title,
+      dates,
+      details: details || "",
+      ctz: tz,
+    });
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  };
+
+  const buildICS = (title: string, details: string | null, start: Date, end: Date) => {
+    const uid = `${crypto?.randomUUID?.() || Math.random().toString(36).slice(2)}@when3meet`;
+    const dtstamp = formatICSDate(new Date());
+    const dtstart = formatICSDate(start);
+    const dtend = formatICSDate(end);
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//when3meet//suggestions//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "BEGIN:VEVENT",
+      `UID:${uid}`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART:${dtstart}`,
+      `DTEND:${dtend}`,
+      `SUMMARY:${title.replace(/\n/g, " ")}`,
+      `DESCRIPTION:${(details || "").replace(/\n/g, " ")}`,
+      "END:VEVENT",
+      "END:VCALENDAR",
+      "",
+    ];
+    return lines.join("\r\n");
+  };
+
+  const downloadICS = (filename: string, content: string) => {
+    const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (suggestions.length === 0) {
     return null;
   }
@@ -332,6 +401,25 @@ const SuggestedTimes = ({ event, participants, availability }: SuggestedTimesPro
                       </Badge>
                       <div className="text-sm font-semibold text-primary">
                         {Math.round(suggestion.percentage)}%
+                      </div>
+                      {/* Calendar actions (no auth) */}
+                      <div className="flex items-center gap-2 ml-2" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                          const start = toLocalDate(suggestion.date, suggestion.time);
+                          const end = addMinutes(start, 30);
+                          const gcal = buildGoogleCalendarLink(event.title, event.description, start, end);
+                          const icsContent = buildICS(event.title, event.description, start, end);
+                          return (
+                            <>
+                              <Button asChild size="sm" variant="outline">
+                                <a href={gcal} target="_blank" rel="noreferrer">Google</a>
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => downloadICS(`${event.title}-${suggestion.date}-${suggestion.time.slice(0,5)}.ics`, icsContent)}>
+                                .ics
+                              </Button>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
