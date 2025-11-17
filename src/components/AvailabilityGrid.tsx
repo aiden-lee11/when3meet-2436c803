@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
@@ -33,9 +33,11 @@ const AvailabilityGrid = ({ event, participantId, availability }: AvailabilityGr
     const slots: string[] = [];
     const start = new Date(`2000-01-01T${event.start_time}`);
     const end = new Date(`2000-01-01T${event.end_time}`);
-    
+
     while (start < end) {
-      slots.push(start.toTimeString().slice(0, 5));
+      // Use HH:MM:SS consistently to match Supabase time serialization
+      const hhmmss = start.toTimeString().slice(0, 8);
+      slots.push(hhmmss);
       start.setMinutes(start.getMinutes() + 30);
     }
     return slots;
@@ -71,26 +73,19 @@ const AvailabilityGrid = ({ event, participantId, availability }: AvailabilityGr
     setUserAvailability(newMap);
 
     try {
-      const existing = availability.find(
-        a => a.participant_id === participantId && a.date === date && a.time === time
-      );
-
-      if (existing) {
-        await supabase
-          .from("availability")
-          .update({ status })
-          .eq("id", existing.id);
-      } else {
-        await supabase
-          .from("availability")
-          .insert({
+      // Use upsert to avoid race conditions and 409 conflicts on unique constraint
+      await supabase
+        .from("availability")
+        .upsert(
+          {
             participant_id: participantId,
             event_id: event.id,
             date,
             time,
             status,
-          });
-      }
+          },
+          { onConflict: "participant_id,date,time" }
+        );
     } catch (error) {
       console.error("Error updating availability:", error);
       toast.error("Failed to update availability");
@@ -157,12 +152,12 @@ const AvailabilityGrid = ({ event, participantId, availability }: AvailabilityGr
               </div>
             ))}
             
-            {timeSlots.map(time => (
-              <>
-                <div key={`label-${time}`} className="bg-card p-2 text-sm font-medium">
-                  {time}
+            {timeSlots.map((time) => (
+              <React.Fragment key={time}>
+                <div className="bg-card p-2 text-sm font-medium">
+                  {time.slice(0, 5)}
                 </div>
-                {dates.map(date => {
+                {dates.map((date) => {
                   const key = getSlotKey(date, time);
                   const status = userAvailability.get(key);
                   return (
@@ -177,7 +172,7 @@ const AvailabilityGrid = ({ event, participantId, availability }: AvailabilityGr
                     />
                   );
                 })}
-              </>
+              </React.Fragment>
             ))}
           </div>
         </div>

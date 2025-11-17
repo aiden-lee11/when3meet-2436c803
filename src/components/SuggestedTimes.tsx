@@ -97,7 +97,8 @@ const SuggestedTimes = ({ event, participants, availability }: SuggestedTimesPro
     const end = new Date(`2000-01-01T${event.end_time}`);
     
     while (start < end) {
-      slots.push(start.toTimeString().slice(0, 5));
+      // Use HH:MM:SS consistently to match stored Supabase time values
+      slots.push(start.toTimeString().slice(0, 8));
       start.setMinutes(start.getMinutes() + 30);
     }
     return slots;
@@ -307,7 +308,7 @@ const SuggestedTimes = ({ event, participants, availability }: SuggestedTimesPro
                             weekday: 'short',
                             month: 'short', 
                             day: 'numeric' 
-                          })} at {suggestion.time}
+                          })} at {suggestion.time.slice(0, 5)}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {suggestion.preferredCount > 0 && (
