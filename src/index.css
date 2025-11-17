@@ -118,3 +118,20 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .heatmap-0 { @apply bg-muted/50; }
+  .heatmap-20 { background-color: hsl(178, 50%, 85%); }
+  .heatmap-40 { background-color: hsl(178, 50%, 70%); }
+  .heatmap-60 { background-color: hsl(178, 50%, 55%); }
+  .heatmap-80 { background-color: hsl(var(--works)); }
+  .heatmap-100 { background-color: hsl(178, 70%, 35%); }
+
+  .dark {
+    .heatmap-20 { background-color: hsl(178, 40%, 20%); }
+    .heatmap-40 { background-color: hsl(178, 40%, 30%); }
+    .heatmap-60 { background-color: hsl(178, 40%, 40%); }
+    .heatmap-80 { background-color: hsl(var(--works)); }
+    .heatmap-100 { background-color: hsl(178, 50%, 60%); }
+  }
+}
